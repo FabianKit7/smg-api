@@ -5,12 +5,21 @@ import cors from 'cors'
 import NodeMailer from 'nodemailer'
 import dotenv from 'dotenv';
 import stripeRoutes from './routes/stripeRoutes.js';
+import { createClient } from '@supabase/supabase-js';
+import bodyParser from 'body-parser';
 
 dotenv.config({ path: '.env' });
 const PORT = process.env.PORT || 8000
 const app = express()
-app.use(express.urlencoded())
+// app.use(express.urlencoded())
+app.use(bodyParser.urlencoded({ extended: true }))
 app.use(cors())
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+
 
 const transporter = NodeMailer.createTransport({
   host: process.env.SMPT_HOST,
@@ -37,6 +46,16 @@ const send_email = (to, subject, content) => {
   )
 }
 
+app.post('/api/auth_user', async (req, res) => {
+  const { email, password } = req.body;
+  const { data: { user }, error } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true
+  });
+  error && console.log('error creating auth_user: ', error);
+  return res.send({ data: user, error })
+})
 
 app.post('/api/send_email', async (req, res) => {
   send_email(req.body.email, req.body.subject, req.body.htmlContent)
