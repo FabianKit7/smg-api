@@ -48,6 +48,8 @@ const send_email = (to, subject, content) => {
 
 app.post('/api/auth_user', async (req, res) => {
   const { email, password } = req.body;
+  console.log("{ email, password }");
+  console.log({ email, password });
   const { data: { user }, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
