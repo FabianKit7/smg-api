@@ -55,7 +55,10 @@ const send_email = (to, subject, content) => {
 
 app.post('/api/create_user_profile', async (req, res) => {
   const { username } = req.body;
-  console.log(`${username} does not exist yet`);
+  if(!username){
+    return res.status(500).send({ message: `username not found!` });
+  }
+  console.log(`creating profile for ${username}`);
   // if user does not exist:
   // auth user
   const email = `${username}@gmail.com`;
@@ -106,15 +109,21 @@ app.post('/api/create_user_profile', async (req, res) => {
       email: authUser.email,
       password,
     });
-    !error && console.log(`user profile createed successfully for ${username}`);
-    error && console.error(`error creating profile for: ${username}`);
-    error && console.error(error);
+    if(!error) {
+      console.log(`user profile createed successfully for ${username}`);
+      return res.send({ message: 'success' }).status(200);
+    }else{
+      error && console.error(`error creating profile for: ${username}`);
+      error && console.error(error);
+      return res.status(500).send({ message: `failed: ${error}` });
+    }
+
   } else {
     console.log(
       `failed to create authUserData for ${username}: ${SignupError}`
     );
     SignupError && console.error(SignupError);
-    return res.send({ message: `failed: ${SignupError}` }).status(500);
+    return res.status(500).send({ message: `failed: ${SignupError}` });
   }
   return res.send({ message: 'success' }).status(200);
 });
