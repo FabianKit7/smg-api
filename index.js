@@ -79,15 +79,20 @@ app.post('/api/create_user_profile', async (req, res) => {
     console.log(`created authUserData for ${authUser.email}`);
     // upload profile picture
     let profile_pic_url = '';
-    const uploadImageFromURLRes = await uploadImageFromURL(username);
-
-    if (uploadImageFromURLRes?.status === 'success') {
-      profile_pic_url = uploadImageFromURLRes?.data ?? '';
+    try {
+      const uploadImageFromURLRes = await uploadImageFromURL(username);
+  
+      if (uploadImageFromURLRes?.status === 'success') {
+        profile_pic_url = uploadImageFromURLRes?.data ?? '';
+      }
+  
+      profile_pic_url
+        ? console.log(` profile picture for ${username} has been uploaded`)
+        : console.log(` profile picture for ${username} was not uploaded`);
+      
+    } catch (error) {
+      console.error('failed to upload profile picture: ',error);
     }
-
-    profile_pic_url
-      ? console.log(` profile picture for ${username} has been uploaded`)
-      : console.log(` profile picture for ${username} was not uploaded`);
     // todo: create user profile
     const defaultData = {
       start_time: new Date(),
@@ -125,7 +130,7 @@ app.post('/api/create_user_profile', async (req, res) => {
     SignupError && console.error(SignupError);
     return res.status(500).send({ message: `failed: ${SignupError}` });
   }
-  return res.send({ message: 'success' }).status(200);
+  // return res.send({ message: 'success' }).status(200);
 });
 
 app.post('/api/auth_user', async (req, res) => {
