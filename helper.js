@@ -1,9 +1,8 @@
+import { createClient } from "@supabase/supabase-js";
+import axios from "axios";
+import dotenv from "dotenv";
 
-import { createClient } from '@supabase/supabase-js';
-import axios from 'axios'
-import dotenv from 'dotenv';
-
-dotenv.config({ path: '.env' });
+dotenv.config({ path: ".env" });
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKeyA = process.env.SUPABASE_ANON_KEY;
@@ -17,12 +16,12 @@ export const X_RAPID_API_HOST = process.env.X_RAPID_API_HOST;
 
 export const getAccount = async (account) => {
   const options = {
-    method: 'GET',
+    method: "GET",
     url: SCRAPER_API_URL,
-    params: { ig: account, response_type: 'short', corsEnabled: 'true' },
+    params: { ig: account, response_type: "short", corsEnabled: "true" },
     headers: {
-      'X-RapidAPI-Key': X_RAPID_API_KEY,
-      'X-RapidAPI-Host': X_RAPID_API_HOST,
+      "X-RapidAPI-Key": X_RAPID_API_KEY,
+      "X-RapidAPI-Host": X_RAPID_API_HOST,
     },
   };
 
@@ -47,7 +46,7 @@ export async function uploadImageFromURL(username, imageURL) {
     if (imageData) {
       // Upload image to Supabase storage
       const { data, error } = await supabase.storage
-        .from('profilePictures')
+        .from("profilePictures")
         .upload(`${username}.jpg`, imageData, {
           upsert: true,
         });
@@ -57,27 +56,27 @@ export async function uploadImageFromURL(username, imageURL) {
       // }
       if (error) {
         console.log(error);
-        return { status: 'failed', data: error };
+        return { status: "failed", data: error };
       } else {
         // console.log(`Image uploaded to ${data}`);
         const publicUrl = getDownloadedFilePublicUrl(data.path);
         // console.log("publicUrl: ", publicUrl?.data?.publicUrl)
-        return { status: 'success', data: publicUrl?.data?.publicUrl };
+        return { status: "success", data: publicUrl?.data?.publicUrl };
       }
     }
   } catch (error) {
-    console.log('uploadImageFromURLError: ', error);
+    console.log("uploadImageFromURLError: ", error);
   }
 }
 
 export function getDownloadedFilePublicUrl(path) {
-  const publicUrl = supabase.storage.from('profilePictures').getPublicUrl(path);
+  const publicUrl = supabase.storage.from("profilePictures").getPublicUrl(path);
   return publicUrl;
 }
 
 export function generateRandomPassword(length) {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let password = '';
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let password = "";
   for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * charset.length);
     password += charset[randomIndex];
@@ -88,35 +87,43 @@ export function generateRandomPassword(length) {
 // add: targeting, Whitelist, Blacklist
 export const addtargetings = async (accWithTable, user) => {
   if (!accWithTable) return;
-  var filteredAccount = accWithTable.username;
-  if (filteredAccount.startsWith('@')) {
-    filteredAccount = filteredAccount.substring(1)
+  var filteredAccount = accWithTable?.account;
+  if (filteredAccount.startsWith("@")) {
+    filteredAccount = filteredAccount.substring(1);
   }
   if (filteredAccount) {
     const theAccount = await getAccount(filteredAccount);
     // console.log(theAccount);
-    var profile_pic_url = '';
-    const uploadImageFromURLRes = await uploadImageFromURL(filteredAccount, theAccount?.data?.[0]?.profile_pic_url)
-    if (uploadImageFromURLRes?.status === 'success') {
-      profile_pic_url = uploadImageFromURLRes?.data
+    var profile_pic_url = "";
+    const uploadImageFromURLRes = await uploadImageFromURL(
+      filteredAccount,
+      theAccount?.data?.[0]?.profile_pic_url
+    );
+    if (uploadImageFromURLRes?.status === "success") {
+      profile_pic_url = uploadImageFromURLRes?.data;
     }
 
+    // console.log("user: ");
+    // console.log(user);
     const data = {
       account: filteredAccount,
       followers: theAccount.data[0].follower_count,
       avatar: profile_pic_url,
-      user_id: user?.user_id,
-      main_user_username: user?.username
-    }
+      user_id: user?.user_id || "",
+      main_user_username: user?.username || "",
+    };
 
     if (user?.first_account) {
-      delete data.main_user_username
+      delete data.main_user_username;
     }
 
+    // console.log(data);
+
     const res = await supabase.from(accWithTable?.table).upsert(data);
-    res?.error && console.log(
-      "🚀 ~ file: Whitelist.jsx:33 ~ const{error}=awaitsupabase.from ~ error",
-      res.error
-    );
+    res?.error
+      ? console.log(res.error)
+      : console.log(
+          `successfully added account: ${filteredAccount} to: ${accWithTable?.table} for user: ${user?.username}`
+        );
   }
 };

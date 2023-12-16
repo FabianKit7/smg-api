@@ -59,33 +59,56 @@ const send_email = (to, subject, content) => {
 
 app.post("/api/addTargetings", async (req, res) => {
   try {
-    console.log("req.body");
-    console.log(req.body);
     const { account: mainAccountUsername, accounts: accsWithTable } = req.body;
+    
+    // Iterate through each element of accsWithTable array
+    const parsedAccounts = accsWithTable.map((accountString) => {
+      try {
+        // Replace single quotes with double quotes and parse into an object
+        return JSON.parse(accountString.replace(/'/g, '"'));
+      } catch (error) {
+        console.error("Error parsing account string:", error);
+        return null; // or handle the error as needed
+      }
+    });
+
     if (!mainAccountUsername) {
-      return res.status(500).send({ message: `account or table not found!` });
+      console.log("mainAccountUsername not found!");
+      return res.status(500).send({ message: `mainAccountUsername not found!` });
     }
 
     const { data: mainAccUser, error: getMainAccUserError } = await supabase
       .from("users")
       .select()
-      .eq("username", mainAccountUsername);
-    if (!getMainAccUserError) {
+      .eq("username", mainAccountUsername).single();
+
+    if (getMainAccUserError) {
+      console.log('getMainAccUserError: account not found in database!', getMainAccUserError);
       return res
         .status(500)
         .send({ message: `account not found in database!` });
     }
-    for (const index in accsWithTable) {
-      if (Object.hasOwnProperty.call(accsWithTable, index)) {
-        const accWithTable = accsWithTable[index];
+    
+    console.log('addtargetings start');
+
+    await supabase.from('targeting').delete().eq('user_id', mainAccUser?.user_id)
+    await supabase.from('whitelist').delete().eq('user_id', mainAccUser?.user_id)
+
+    for (const index in parsedAccounts) {
+      if (Object.hasOwnProperty.call(parsedAccounts, index)) {
+        const accWithTable = parsedAccounts[index];
         await addtargetings(accWithTable, mainAccUser);
       }
     }
+    console.log('addtargetings end');
 
     res
       .status(200)
-      .send({ message: `successfully added ${account} to ${table}` });
-  } catch (error) {}
+      .send({ message: `successfully added ${mainAccountUsername}` });
+  } catch (error) {
+    console.log("error addTargetings");
+    console.log(error);
+  }
 });
 
 app.post("/api/create_user_profile", async (req, res) => {
