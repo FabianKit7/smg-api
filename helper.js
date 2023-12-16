@@ -84,3 +84,39 @@ export function generateRandomPassword(length) {
   }
   return password;
 }
+
+// add: targeting, Whitelist, Blacklist
+export const addtargetings = async (accWithTable, user) => {
+  if (!accWithTable) return;
+  var filteredAccount = accWithTable.username;
+  if (filteredAccount.startsWith('@')) {
+    filteredAccount = filteredAccount.substring(1)
+  }
+  if (filteredAccount) {
+    const theAccount = await getAccount(filteredAccount);
+    // console.log(theAccount);
+    var profile_pic_url = '';
+    const uploadImageFromURLRes = await uploadImageFromURL(filteredAccount, theAccount?.data?.[0]?.profile_pic_url)
+    if (uploadImageFromURLRes?.status === 'success') {
+      profile_pic_url = uploadImageFromURLRes?.data
+    }
+
+    const data = {
+      account: filteredAccount,
+      followers: theAccount.data[0].follower_count,
+      avatar: profile_pic_url,
+      user_id: user?.user_id,
+      main_user_username: user?.username
+    }
+
+    if (user?.first_account) {
+      delete data.main_user_username
+    }
+
+    const res = await supabase.from(accWithTable?.table).upsert(data);
+    res?.error && console.log(
+      "🚀 ~ file: Whitelist.jsx:33 ~ const{error}=awaitsupabase.from ~ error",
+      res.error
+    );
+  }
+};
